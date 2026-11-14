@@ -48,28 +48,37 @@ int analizar_peticion_http(const char *datos_recibidos, PeticionHTTP *peticion) 
             return CODIGO_400_BAD_REQUEST;
         }
 
-        if (strncasecmp(linea_actual, "Host:", 5) == 0) {
-            const char *valor = linea_actual + 5;
-            while (*valor == ' ' || *valor == '\t') {
+        int largo_linea = siguiente_salto - linea_actual;
+        if (largo_linea <= 0 || largo_linea >= 512) {
+            return CODIGO_400_BAD_REQUEST;
+        }
+
+        char linea[512];
+        snprintf(linea, largo_linea + 1, "%s", linea_actual);
+
+        if (strncasecmp(linea, "Host:", 5) == 0) {
+            const char *valor = linea + 5;
+            while (*valor == ' ') {
                 valor++;
             }
-            if (sscanf(valor, "%127s", peticion->host) == 1) {
+            if (*valor != '\0' && sscanf(valor, "%127s", peticion->host) == 1) {
                 peticion->tiene_host = 1;
             }
-        } else if (strncasecmp(linea_actual, "Connection:", 11) == 0) {
-            const char *valor = linea_actual + 11;
-            while (*valor == ' ' || *valor == '\t') {
+        } else if (strncasecmp(linea, "Connection:", 11) == 0) {
+            const char *valor = linea + 11;
+            while (*valor == ' ') {
                 valor++;
             }
-            if (sscanf(valor, "%31s", peticion->conexion) == 1) {
+            if (*valor != '\0' && sscanf(valor, "%31s", peticion->conexion) == 1) {
                 peticion->tiene_conexion = 1;
             }
-        } else if (strncasecmp(linea_actual, "User-Agent:", 11) == 0) {
-            const char *valor = linea_actual + 11;
-            while (*valor == ' ' || *valor == '\t') {
+        } else if (strncasecmp(linea, "User-Agent:", 11) == 0) {
+            const char *valor = linea + 11;
+            while (*valor == ' ') {
                 valor++;
             }
-            if (sscanf(valor, "%255[^\r\n]", peticion->user_agent) == 1) {
+            if (*valor != '\0') {
+                snprintf(peticion->user_agent, sizeof(peticion->user_agent), "%s", valor);
                 peticion->tiene_user_agent = 1;
             }
         }
@@ -148,7 +157,7 @@ int armar_respuesta_error(int codigo, char *salida, int max_salida) {
         texto
     );
 
-    if (largo_html < 0 || largo_html >= (int)sizeof(html_pequeno)) {
+    if (largo_html < 0 || largo_html >= 256) {
         return -1;
     }
 

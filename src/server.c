@@ -5,16 +5,14 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
-#include <sys/epoll.h>
 #include "server.h"
 #include "http.h"
 #include "files.h"
 #include "mime.h"
 
-#define LIMITE_EVENTOS 64
 #define TAMANO_BUFFER_RED 4096
 
-static int enviar_bytes_completos(int socket_cliente, const char *datos, long cantidad_total) {
+int enviar_bytes_completos(int socket_cliente, const char *datos, long cantidad_total) {
     long enviados = 0;
 
     while (enviados < cantidad_total) {
@@ -143,7 +141,7 @@ int procesar_cliente(int socket_cliente) {
         long bytes_archivo = 0;
 
         if (tamano_archivo > 0) {
-            buffer_archivo = (char *)malloc((size_t)tamano_archivo);
+            buffer_archivo = malloc(tamano_archivo);
             if (buffer_archivo == NULL) {
                 int largo_err = armar_respuesta_error(CODIGO_500_INTERNAL_ERROR, buffer_salida, sizeof(buffer_salida));
                 if (largo_err > 0) {
@@ -203,58 +201,4 @@ int procesar_cliente(int socket_cliente) {
     }
 
     return 1;
-}
-
-int iniciar_bucle_epoll(int socket_servidor) {
-    int fd_epoll = epoll_create1(0);
-    if (fd_epoll == -1) {
-        return -1;
-    }
-
-    struct epoll_event ev_registro;
-    struct epoll_event lista_eventos[LIMITE_EVENTOS];
-
-    ev_registro.events = EPOLLIN;
-    ev_registro.data.fd = socket_servidor;
-
-    if (epoll_ctl(fd_epoll, EPOLL_CTL_ADD, socket_servidor, &ev_registro) == -1) {
-        close(fd_epoll);
-        return -1;
-    }
-
-    while (1) {
-        int listos = epoll_wait(fd_epoll, lista_eventos, LIMITE_EVENTOS, -1);
-        if (listos == -1) {
-            continue;
-        }
-
-        for (int i = 0; i < listos; i++) {
-            int fd_activo = lista_eventos[i].data.fd;
-
-            if (fd_activo == socket_servidor) {
-                int nuevo_cliente = aceptar_nueva_conexion(socket_servidor);
-                if (nuevo_cliente == -1) {
-                    continue;
-                }
-
-                struct epoll_event ev_cliente;
-                ev_cliente.events = EPOLLIN;
-                ev_cliente.data.fd = nuevo_cliente;
-
-                if (epoll_ctl(fd_epoll, EPOLL_CTL_ADD, nuevo_cliente, &ev_cliente) == -1) {
-                    close(nuevo_cliente);
-                    continue;
-                }
-            } else {
-                int debe_cerrar = procesar_cliente(fd_activo);
-                if (debe_cerrar == 1) {
-                    epoll_ctl(fd_epoll, EPOLL_CTL_DEL, fd_activo, NULL);
-                    close(fd_activo);
-                }
-            }
-        }
-    }
-
-    close(fd_epoll);
-    return 0;
 }

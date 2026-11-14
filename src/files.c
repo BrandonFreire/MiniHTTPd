@@ -1,14 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <limits.h>
 #include <sys/stat.h>
 #include <errno.h>
 #include "files.h"
 
-#ifndef PATH_MAX
-#define PATH_MAX 4096
-#endif
+#define MAX_RUTA 4096
 
 int validar_ruta_segura(const char *uri, char *ruta_resuelta, int max_largo) {
     if (uri == NULL || ruta_resuelta == NULL || max_largo <= 0) {
@@ -24,16 +21,16 @@ int validar_ruta_segura(const char *uri, char *ruta_resuelta, int max_largo) {
         recurso = "/index.html";
     }
 
-    char base_www[PATH_MAX];
-    char ruta_candidata[PATH_MAX];
-    char ruta_real[PATH_MAX];
+    char base_www[MAX_RUTA];
+    char ruta_candidata[MAX_RUTA];
+    char ruta_real[MAX_RUTA];
 
     if (realpath("www", base_www) == NULL) {
         return ARCHIVO_ERROR;
     }
 
-    int escritos = snprintf(ruta_candidata, sizeof(ruta_candidata), "www%s", recurso);
-    if (escritos < 0 || escritos >= (int)sizeof(ruta_candidata)) {
+    int escritos = snprintf(ruta_candidata, MAX_RUTA, "www%s", recurso);
+    if (escritos < 0 || escritos >= MAX_RUTA) {
         return ARCHIVO_ERROR;
     }
 
@@ -81,7 +78,7 @@ int obtener_longitud_archivo(const char *ruta, long *longitud) {
         return ARCHIVO_PROHIBIDO;
     }
 
-    *longitud = (long)datos_archivo.st_size;
+    *longitud = datos_archivo.st_size;
     return ARCHIVO_OK;
 }
 
@@ -95,7 +92,7 @@ int leer_contenido_binario(const char *ruta, char *destino, long longitud, long 
         return ARCHIVO_ERROR;
     }
 
-    size_t leidos = fread(destino, 1, (size_t)longitud, archivo);
+    long leidos = fread(destino, 1, longitud, archivo);
     if (ferror(archivo)) {
         fclose(archivo);
         return ARCHIVO_ERROR;
@@ -103,10 +100,10 @@ int leer_contenido_binario(const char *ruta, char *destino, long longitud, long 
 
     fclose(archivo);
 
-    if ((long)leidos != longitud) {
+    if (leidos != longitud) {
         return ARCHIVO_ERROR;
     }
 
-    *total_leido = (long)leidos;
+    *total_leido = leidos;
     return ARCHIVO_OK;
 }

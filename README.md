@@ -1,4 +1,4 @@
-# MiniHTTPd_C - Servidor HTTP/1.1 Básico
+# MiniHTTPd - Servidor HTTP/1.1 Básico
 
 Proyecto para la materia de Computación Distribuida (ICCD654). Consiste en la implementación en lenguaje C para Linux (Ubuntu) de un servidor web básico que soporta el protocolo HTTP/1.1 sin usar librerías externas.
 
@@ -7,35 +7,41 @@ El servidor maneja múltiples clientes en un solo hilo mediante multiplexación 
 ## Organización de carpetas
 
 ```text
-MiniHTTPd_C/
+minihttpd/
 ├── Makefile
 ├── README.md
 ├── include/
-│   ├── files.h
 │   ├── http.h
+│   ├── server.h
 │   ├── mime.h
-│   └── server.h
+│   └── files.h
 ├── src/
-│   ├── files.c
-│   ├── http.c
 │   ├── main.c
+│   ├── server.c
+│   ├── http.c
 │   ├── mime.c
-│   └── server.c
+│   └── files.c
 └── www/
     ├── index.html
     ├── style.css
-    └── logo.png
+    └── image.png
 ```
 
 ## Descripción de los archivos
 
-- **main.c**: Inicializa el socket en el puerto 8080 y arranca el ciclo principal con `epoll`.
-- **server.c**: Configuración del socket TCP, manejo de eventos con `epoll`, ciclo de atención al cliente para mantener la conexión activa (`keep-alive`) y envío completo de bytes con `send()`.
+- **main.c**: Inicializa el socket en el puerto 8080 y ejecuta el bucle principal de eventos con `epoll`.
+- **server.c**: Configuración del socket TCP, ciclo de atención al cliente para mantener la conexión activa (`keep-alive`) y envío completo de bytes con `send()`.
 - **http.c**: Lectura y validación de la petición `GET` (revisando que incluya las cabeceras `Host`, `Connection` y `User-Agent`), además de armar las cabeceras de respuesta y las páginas pequeñas de error.
 - **files.c**: Validación de rutas con `realpath()` para impedir que se acceda a carpetas fuera de `www/`, obtención del tamaño con `stat()` y lectura de archivos en modo binario (`"rb"`).
 - **mime.c**: Identificación de la extensión del archivo solicitado para devolver su `Content-Type` (`.html`, `.css`, `.js`, `.png`, `.jpg`).
 
 ## Compilación y ejecución
+
+Para borrar el binario compilado:
+
+```bash
+make clean
+```
 
 Para compilar el proyecto desde la terminal de Linux:
 
@@ -47,18 +53,6 @@ Para iniciar el servidor:
 
 ```bash
 ./minihttpd
-```
-
-También se puede compilar y correr directamente con:
-
-```bash
-make run
-```
-
-Para borrar el binario compilado:
-
-```bash
-make clean
 ```
 
 ## Pruebas realizadas
